@@ -1,6 +1,7 @@
 const { ApolloServer, gql } = require('apollo-server');
+const uuid = require('uuid/v1');
 
-const authors = [
+let authors = [
   {
     name: 'Robert Martin',
     id: 'afa51ab0-344d-11e9-a414-719c6709cf3e',
@@ -31,7 +32,7 @@ const authors = [
  * Yksinkertaisuuden vuoksi tallennamme kuitenkin kirjan yhteyteen tekijän nimen
  */
 
-const books = [
+let books = [
   {
     title: 'Clean Code',
     published: 2008,
@@ -87,7 +88,7 @@ const typeDefs = gql`
   type Query {
     bookCount: Int!
     authorCount: Int!
-    allBooks: [Book!]!
+    allBooks(author: String, genre: String): [Book!]!
     allAuthors: [Author!]!
   }
 
@@ -101,15 +102,38 @@ const typeDefs = gql`
 
   type Author {
     name: String!
+    born: Int
     bookCount: Int!
   }
+
+  type Mutation {
+    addBook(
+      title: String!
+      published: Int!
+      author: String!
+      genres: [String!]
+    ): Book
+    editAuthor(name: String!, setBornTo: Int!): Author
+  }
 `;
+
+const filterByAuthor = books => author => {
+  if (!author) return books;
+  return books.filter(b => b.author === author);
+};
+
+const filterByGenre = books => genre => {
+  if (!genre) return books;
+  return books.filter(b => b.genres.indexOf(genre) != -1);
+};
 
 const resolvers = {
   Query: {
     bookCount: () => books.length,
     authorCount: () => authors.length,
     allBooks: () => books,
+    allBooks: (root, args) =>
+      filterByGenre(filterByAuthor(books)(args.author))(args.genre),
     allAuthors: (root, args) =>
       authors.map(a => {
         return {
@@ -117,6 +141,20 @@ const resolvers = {
           bookCount: books.filter(b => b.author === a.name).length
         };
       })
+  },
+  Mutation: {
+    addBook: (root, args) => {
+      const book = { ...args, id: uuid() };
+      books = books.concat(book);
+      return book;
+    },
+    editAuthor: (root, args) => {
+      const author = authors.find(a => a.name === args.name);
+      if (!author) return null;
+      const updtAuthor = { ...author, born: args.setBornTo };
+      authors = authors.map(a => (a.id === author.id ? updtAuthor : a));
+      return updtAuthor;
+    }
   }
 };
 
