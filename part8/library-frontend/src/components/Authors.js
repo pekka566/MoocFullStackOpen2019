@@ -13,13 +13,13 @@ const Authors = props => {
     <div>
       <h2>authors</h2>
       <div>
-        <div class="wrapper">
+        <div className="wrapper">
           <div />
           <div className="title">born</div>
           <div className="title">books</div>
         </div>
         {authors.map(a => (
-          <div class="wrapper">
+          <div className="wrapper" key={a.name}>
             <div>{a.name}</div>
             <div>{a.born}</div>
             <div>{a.bookCount}</div>
